@@ -5,5 +5,107 @@
 <center>
 <h3>Page</h3>
 </center>
+  
+  
+  
+<canvas id="quadCanvas" width="800" height="800"></canvas>
+<script>
+var RESOLUTION = 2
+var MaxLOD = 7
+
+var canvas = document.getElementById('quadCanvas')
+var ctx = canvas.getContext("2d")
+
+var Size = canvas.width;
+var Half = Size / 2.0
+
+//canvas.addEventListener('mousedown', draw)
+canvas.addEventListener('mousemove', draw)
+
+ctx.strokeRect(0, 0, Size, Size);
+
+function draw(e) 
+{ 	
+	var rect = canvas.getBoundingClientRect();
+	var P = {
+		x: e.clientX - rect.left,
+		y: e.clientY - rect.top
+	  }
+	//var P = {x: Size - 10, y: 60.0}
+	
+	if (typeof(P.x) === 'undefined') P.x = rect.clientX / 2;
+	if (typeof(P.y) === 'undefined') P.y = rect.clientY / 2; 
+	
+	var locals = [/*Root Quad*/{x:Half, y:Half, radius: Half, lod:0, hash: [0], parent: null, childs: []}]
+	
+	var tempQuads = [] 
+	
+	while(locals.length > 0) 
+	{
+		var quad = locals.shift()
+		
+		var distance = dist(P, quad) / quad.radius
+		
+		var newLod = quad.lod + 1 
+		
+		if (distance < (newLod * 1.1)  && quad.lod < MaxLOD) {
+		
+			var newRadius = quad.radius / 2.0
+			
+			var qTopL 		= {x: quad.x-newRadius, y: quad.y-newRadius, radius: newRadius, lod: newLod, parent: quad, hash: [...quad.hash,0]}
+			var qTopR 		= {x: quad.x+newRadius, y: quad.y-newRadius, radius: newRadius, lod: newLod, parent: quad, hash: [...quad.hash,1]}
+			var qBottomL 	= {x: quad.x-newRadius, y: quad.y+newRadius, radius: newRadius, lod: newLod, parent: quad, hash: [...quad.hash,2]}
+			var qBottomR 	= {x: quad.x+newRadius, y: quad.y+newRadius, radius: newRadius, lod: newLod, parent: quad, hash: [...quad.hash,3]}
+			
+			//quad.childs = [qTopL, qTopR, qBottomL, qBottomR] 
+			
+			locals.push(qTopL)
+			locals.push(qTopR)
+			locals.push(qBottomL)
+			locals.push(qBottomR)
+			
+		}
+		else {
+			tempQuads.push(quad)
+		}
+		
+	}
+	
+	// Clear & draw  bounds
+	ctx.clearRect(0, 0, Size, Size);
+	ctx.strokeRect(0, 0, Size, Size);
+	// Draw Mouse Point
+	ctx.beginPath();
+	ctx.arc(P.x, P.y, 5, 0, 2 * Math.PI)
+	ctx.fill();
+	// Render quads
+	
+	var t = Date.now()
+	for (var i = 0; i < tempQuads.length; i++) 
+	{
+		var quad = tempQuads[i]
+		
+		//shift to top-left
+		var x = quad.x-quad.radius
+		var y = quad.y-quad.radius
+		ctx.strokeRect(x,y, quad.radius*2, quad.radius*2);
+		
+		
+		var blockRadius = quad.radius / ((RESOLUTION - 1) / 2);
+		for (var ii = 0; ii < RESOLUTION - 1; ii++) {
+			for (var jj = 0; jj < RESOLUTION - 1; jj++) {
+			
+				var bx = x + (jj * blockRadius);
+				var by = y + (ii * blockRadius);
+				ctx.strokeRect(bx,by, blockRadius*2, blockRadius*2);
+			}
+		}
+	}
+	
+	var total = Date.now() - t 
+	console.log('Time: ', total)
+}
+  </script>
+  
 </body>
 </html>
